@@ -1,0 +1,7 @@
+# Files:
+*.tiff
+*.tif
+
+# Folders:
+.venv/
+.idea/
