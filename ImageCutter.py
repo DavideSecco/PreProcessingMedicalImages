@@ -2,6 +2,7 @@ import tifffile as tiff
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
+import argparse
 
 
 def visualize_image(image, name=None):
@@ -74,20 +75,32 @@ def find_centroid(image):
 
         plt.show()
 
+    return cX, cY
 
-def divide_4_pieces(image):
-    # Get the dimensions of the image
-    height, width, levels = image.shape
 
-    # Calculate the coordinates for the 4 pieces
-    mid_height = height // 2
-    mid_width = width // 2
+def divide_4_pieces(image, cX=None, cY=None):
+    """
+    :param image:
+    :param cX: X coordinate of the centroid
+    :param cY: Y coordinate of the centroid
+    :return:
+
+    The function divide an image in 4 part, if the point of the centroid are provided
+    the image is divided using that point, otherwise in cutted in 4 equal part
+    """
+    if cX == None or cY == None:
+        # Get the dimensions of the image
+        height, width, levels = image.shape
+
+        # Calculate the coordinates for the 4 pieces
+        cX = height // 2
+        cY = width // 2
 
     # Slice the image into four parts
-    top_left = image[:mid_height, :mid_width]
-    top_right = image[:mid_height, mid_width:]
-    bottom_left = image[mid_height:, :mid_width]
-    bottom_right = image[mid_height:, mid_width:]
+    top_left = image[:cY, :cX]
+    top_right = image[:cY, cX:]
+    bottom_left = image[cY:, :cX]
+    bottom_right = image[cY:, cX:]
 
     images = [top_left, top_right, bottom_left, bottom_right]
     names = ['top_left.tif', 'top_right.tif', 'bottom_left.tif', 'bottom_right.tif']
@@ -97,18 +110,24 @@ def divide_4_pieces(image):
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    # Open the TIFF file
-    file_path = '/mnt/Volume/Mega/LaureaMagistrale/CorsiSemestre/A2S1/MultudisciplinaryProject/Subset1_Train_30.tif'
-    image = tiff.imread(file_path)
+    # Parse the argument passed
+    parser = argparse.ArgumentParser(description="Script to process a file path")
+    parser.add_argument('path', type=str, help='The path to the file')
+    args = parser.parse_args()
 
-    find_centroid(image)
-
+    image = tiff.imread(args.path)
     visualize_image(image)
 
-    images, names = divide_4_pieces(image)
+    cX, cY = find_centroid(image)
+
+    # Divisione dell'immagine usando il centroid
+    images, names = divide_4_pieces(image, cX, cY)
+    # Dividsione dell'immagine non utilizzando il centroid:
+    # images, names = divide_4_pieces(image)
     padded_images = [None] * 4
 
-    for index in range(0,len(images)):
+    # Per tutti i nuovi frammenti dell'immagine
+    for index in range(0, len(images)):
         # Aggiungo il padding
         padded_images[index] = np.pad(images[index], ((200, 200), (200, 200), (0,0)), mode='constant', constant_values=np.iinfo(image.dtype).max)
 
