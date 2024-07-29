@@ -63,9 +63,9 @@ if __name__ == '__main__':
     img = read_image(args.path)
 
     # image is return in RGBA format for now
-    new_img = downsample_image(img, level=3)
-
-    # print(new_img.shape)
+    # the last dimesione is cutted because of stitchpro
+    # that doesn't accept the trasparency channel
+    new_img = downsample_image(img, level=3)[..., 0:3]
 
     # Save the image
     tifffile.imwrite('output_file.tiff', new_img)
