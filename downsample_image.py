@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import argparse
+import tifffile
 
 OPENSLIDE_PATH = r'C:\Program Files\openslide-bin-4.0.0.3-windows-x64\bin'
 
@@ -12,8 +14,7 @@ else:
     import openslide as o
 
 
-PATH3 = r'C:\Users\dicia\NL2_project\StitchPro_NL2\datasets\ultimi-isabella\TCGA-A7-A0DA-01Z-00-DX1.5F087009-16E9-4A07-BA24-62340E108B17.svs'
-
+# PATH3 = r'/mnt/Volume/Mega/LaureaMagistrale/CorsiSemestre/A2S1/MultudisciplinaryProject/pythostitcher/data/TCGA-A2-A3XY/TCGA-A2-A3XY-01Z-00-DX1.E57FC9BF-411E-4028-AC10-8BCA5D0C8472.svs'
 
 def read_image(image_path):
     obj = o.OpenSlide(image_path)
@@ -53,12 +54,21 @@ def downsample_image(image_object, level, region=None, size=None, show=True):
 
 
 if __name__ == '__main__':
+    # Parse the argument passed
+    parser = argparse.ArgumentParser(description="Script to process a file path")
+    parser.add_argument('path', type=str, help='The path to the file')
+    args = parser.parse_args()
 
-    img = read_image(PATH3)
+    # Read the path of the image
+    img = read_image(args.path)
 
     # image is return in RGBA format for now
     new_img = downsample_image(img, level=3)
+
     # print(new_img.shape)
+
+    # Save the image
+    tifffile.imwrite('output_file.tiff', new_img)
 
 
 
