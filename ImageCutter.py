@@ -97,13 +97,13 @@ def divide_4_pieces(image, cX=None, cY=None):
         cY = width // 2
 
     # Slice the image into four parts
-    top_left = image[:cY, :cX]
-    top_right = image[:cY, cX:]
+    upper_left = image[:cY, :cX]
+    upper_right = image[:cY, cX:]
     bottom_left = image[cY:, :cX]
     bottom_right = image[cY:, cX:]
 
-    images = [top_left, top_right, bottom_left, bottom_right]
-    names = ['top_left.tif', 'top_right.tif', 'bottom_left.tif', 'bottom_right.tif']
+    images = [upper_left, upper_right, bottom_left, bottom_right]
+    names = ['upper_left.tif', 'upper_right.tif', 'bottom_left.tif', 'bottom_right.tif']
 
     return images, names
 
