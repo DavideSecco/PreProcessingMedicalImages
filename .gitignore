@@ -1,6 +1,7 @@
 # Files:
 *.tiff
 *.tif
+*.png
 
 # Folders:
 .venv/

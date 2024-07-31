@@ -98,7 +98,7 @@ if __name__ == '__main__':
         process_image(args.path, os.path.curdir)
 
     if os.path.isdir(args.path):
-        save_dir =  os.path.join(os.getcwd(), os.path.basename(os.path.normpath(args.path)))
+        save_dir = os.path.join(os.getcwd(), os.path.basename(os.path.normpath(args.path)))
 
         try:
             os.makedirs(save_dir, exist_ok=True)

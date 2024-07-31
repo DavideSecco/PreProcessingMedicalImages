@@ -116,9 +116,12 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     image = tiff.imread(args.path)
+    # print(image.shape)
+
     visualize_image(image)
 
     cX, cY = find_centroid(image)
+    # print(cX, cY)
 
     # Divisione dell'immagine usando il centroid
     images, names = divide_4_pieces(image, cX, cY)
@@ -129,7 +132,7 @@ if __name__ == '__main__':
     # Per tutti i nuovi frammenti dell'immagine
     for index in range(0, len(images)):
         # Aggiungo il padding
-        padded_images[index] = np.pad(images[index], ((200, 200), (200, 200), (0,0)), mode='constant', constant_values=np.iinfo(image.dtype).max)
+        padded_images[index] = np.pad(images[index], ((100, 100), (100, 100), (0,0)), mode='constant', constant_values=np.iinfo(image.dtype).max)
 
         # Save images with padding
         tiff.imwrite(names[index], padded_images[index])
