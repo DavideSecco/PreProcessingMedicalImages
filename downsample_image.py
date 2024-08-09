@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import argparse
 import tifffile
+from PIL import Image
 import os
 
 OPENSLIDE_PATH = r'C:\Program Files\openslide-bin-4.0.0.3-windows-x64\bin'
@@ -45,16 +46,29 @@ def downsample_image(image_object, level, region=None, size=None, show=True):
 
     # get the image matrix
     downsampled_img = image_object.read_region(location=r, level=level, size=s)
-
+    print(type(downsampled_img))
     if show:
-        plt.figure(figsize=(20, 20))
+        # plt.figure(figsize=(20, 20))
+        plt.title("Downsampled image before saving")
         plt.imshow(downsampled_img)
         plt.show()
 
-    return np.array(downsampled_img)
+    # return np.array(downsampled_img)
+    return downsampled_img
+
+
+def convert_rgba_to_rgb(rgba_image, background=(255, 255, 255)):
+    """Convert an RGBA image to RGB by blending it with a background color."""
+    rgba_image = np.array(rgba_image)
+    r, g, b, a = np.split(rgba_image, 4, axis=-1)
+    alpha = a / 255.0
+    background = np.array(background).reshape(1, 1, 3)
+    rgb_image = (1 - alpha) * background + alpha * np.concatenate([r, g, b], axis=-1)
+    rgb_image = rgb_image.astype(np.uint8)
+    return Image.fromarray(rgb_image, 'RGB')
 
 def process_image(image_path, save_dir):
-    level = 0
+    level = 2
     stichpro_compatible = True
     good_image = False
 
@@ -68,12 +82,50 @@ def process_image(image_path, save_dir):
 
         # image is return in RGBA format for now:
         # Last dimesion is cutted because of stitchpro that doesn't accept the trasparency channel
-        downsampled_image = downsample_image(original_img, level=level)[..., 0:3]
+        # downsampled_image = downsample_image(original_img, level=level)[..., 0:3]
+        downsampled_image = downsample_image(original_img, level=level)
+
+        width, height = downsampled_image.size
+
+        # Get the number of channels
+        mode = downsampled_image.mode
+        if mode == 'L':
+            channels = 1
+        elif mode == 'RGB':
+            channels = 3
+        elif mode == 'RGBA':
+            channels = 4
+        else:
+            channels = len(mode)  # For other modes, this is a general approach
+
+        # Print the shape
+        print(f"Image shape: ({height}, {width}, {channels})")
+
+        plt.title("Downsampled image before saving")
+        plt.imshow(downsampled_image)
+        plt.show()
 
         # Save the image
         downsampled_image_path = os.path.join(save_dir, downsampled_img_name)
-        tifffile.imwrite(downsampled_image_path, downsampled_image)
+        # print(downsampled_image.mode)
+        # print(np.array(downsampled_image))
+        # pixel = (2500,5000)
+        # print(downsampled_image.getpixel(pixel))
+        if downsampled_image.mode != 'RGB':
+            downsampled_image = convert_rgba_to_rgb(downsampled_image)
 
+        downsampled_image.save(downsampled_image_path, format='TIFF')
+
+        plt.title("Downsampled image AFTER SAVING")
+        plt.imshow(downsampled_image)
+        plt.show()
+
+        # print(downsampled_image.getpixel(pixel))
+
+        # try:
+        #     tifffile.imwrite(downsampled_image_path, downsampled_image)
+        # except:
+        #    print(f"Errore nella creazione della cartella: {e}")
 
 
         downsampled_image_size = round(os.path.getsize(downsampled_image_path) / 1024 ** 2, 2)
