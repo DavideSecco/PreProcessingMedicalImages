@@ -32,71 +32,42 @@ def visualize_images(images, names=None):
     plt.tight_layout()
     plt.show()
 
-# Penso sia questa funzione il problema!
 def find_centroid(image):
-    # Convert the image to grayscale
-    gray_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    # Convert the image to grayscale (optional, depending on the use case)
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    # Apply a binary threshold to segment the tissue
-    _, binary_image = cv2.threshold(gray_image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    # Threshold the grayscale image to create a binary mask (you can adjust the threshold value)
+    _, binary_mask = cv2.threshold(gray_image, 230, 255, cv2.THRESH_BINARY)
 
-    # Find contours in the binary image
-    contours, _ = cv2.findContours(binary_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # Find the indices of the non-zero pixels in the binary mask
+    indices = np.argwhere(binary_mask == 0)
 
-    # Assuming the largest contour is the tissue
-    largest_contour = max(contours, key=cv2.contourArea)
+    # Calculate the centroid (mean of the indices)
 
-    # Calculate the centroid of the largest contour
-    M = cv2.moments(largest_contour)
-    if M["m00"] != 0:
-        cX = int(M["m10"] / M["m00"])
-        cY = int(M["m01"] / M["m00"])
-    else:
-        cX, cY = 0, 0
+    cX, cY = map(int,np.mean(indices, axis=0))
+    # print("Centroid : cX", cX, ", cY:", cY)
 
-    # Draw the largest contour and centroid on the image
-    output_image = cv2.drawContours(image.copy(), [largest_contour], -1, (0, 255, 0), 2)
-    cv2.circle(output_image, (cX, cY), 70, (255, 0, 0), thickness=-1)
-    cv2.putText(output_image, "centroid", (cX - 25, cY - 25), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+    ###### Visualizzo centroid e true image (DA COMMENTARE IN PRODUZIONE) ######
 
-    visualize = True
-    if visualize:
-        # Display the results
-        plt.figure(figsize=(10, 10))
-        plt.subplot(1, 3, 1)
-        plt.title("Original Image")
-        # plt.imshow(cv2.cvtColor(image, cv2.COLOR_RGBA2RGB))
-        plt.imshow(image)
+    # cv2.circle(image, (cY, cX), 70, (255, 0, 0), thickness=-1)  # Draw red circle
+    # plt.figure(figsize=(6, 6))
+    # plt.title("True Image")
+    # plt.imshow(image, cmap='gray') # cmap='gray'
+    # plt.axis('on')  # Hide axes for a cleaner look
+    # plt.show()
 
-        plt.figure(figsize=(10, 10))
-        plt.subplot(1, 3, 2)
-        plt.title("Gray iamge")
-        # plt.imshow(cv2.cvtColor(image, cv2.COLOR_RGBA2RGB))
-        plt.imshow(gray_image)
+    ###### Visualizzo centroid e binary_mask image ######
 
-        plt.figure(figsize=(10, 10))
-        plt.subplot(1, 3, 3)
-        plt.title("Binary Image")
-        plt.imshow(binary_image, cmap='gray')
+    cv2.circle(binary_mask, (cY, cX), 70, (255, 0, 0), thickness=-1)  # Draw red circle
+    plt.figure(figsize=(6, 6))
+    plt.title("Binary Mask")
+    plt.imshow(binary_mask, cmap='gray')  # cmap='gray'
+    plt.axis('on')  # Hide axes for a cleaner look
+    plt.show()
 
-        plt.subplot(2, 3, 1)
-        plt.title("Contour and Centroid")
-        plt.imshow(cv2.cvtColor(output_image, cv2.COLOR_RGBA2RGB))
-        plt.imshow(output_image)
-
-        plt.show()
-
+    # Print the centroid coordinates
+    # print("Centroid (y, x):", centroid)
     return cX, cY
-
-def find_centroid_tmp(image):
-    # Get the dimensions of the image
-    height, width, levels = image.shape
-
-    # Calculate the coordinates for the 4 pieces
-    cX = width // 2
-    cY = height // 2
-    return cX, cY
-
 
 def divide_4_pieces(image, cX=None, cY=None):
     """
@@ -113,14 +84,14 @@ def divide_4_pieces(image, cX=None, cY=None):
         height, width, levels = image.shape
 
         # Calculate the coordinates for the 4 pieces
-        cX = height // 2
-        cY = width // 2
+        cX = width // 2
+        cY = height // 2
 
     # Slice the image into four parts
-    upper_left = image[:cY, :cX]
-    upper_right = image[:cY, cX:]
-    bottom_left = image[cY:, :cX]
-    bottom_right = image[cY:, cX:]
+    upper_left = image[:cX, :cY]
+    upper_right = image[:cX, cY:]
+    bottom_left = image[cX:, :cY]
+    bottom_right = image[cX:, cY:]
 
     images = [upper_left, upper_right, bottom_left, bottom_right]
     names = ['upper_left.tif', 'upper_right.tif', 'bottom_left.tif', 'bottom_right.tif']
@@ -157,45 +128,38 @@ if __name__ == '__main__':
     parser.add_argument('path', type=str, help='The path to the file')
     args = parser.parse_args()
 
+    ####### Visualizzazione e eventuale conversione dell'immagine #####
     image = tiff.imread(args.path)
     print(image.shape)
     visualize_image(image)
 
     if not is_rgb(image):
+        print("Not an RGB image: conversion from RGBA to RGB")
         image = convert_rgba_to_rgb(image)
-    # image = convert_rgba_to_rgb(image)
-    print(image.shape)
-    visualize_image(image)
+        visualize_image(image)
 
-    # cX, cY = find_centroid(image)
-    cX, cY = find_centroid_tmp(image)
-    print("cX: ", cX, "cY: ", cY)
+    print("Dimensione dell'immagine RGB:", image.shape)
 
-    # Divisione dell'immagine usando il centroid
+    ###### Trovo centroid #######
+    cX, cY = find_centroid(image)
+    print("Cordinate centroid: cX: ", cX, "cY: ", cY)
+
+    ###### Divisione dell'immagine ######
     images, names = divide_4_pieces(image, cX, cY)
-    visualize_image(images[0])
 
-
-    # Dividsione dell'immagine non utilizzando il centroid:
-    # images, names = divide_4_pieces(image)
+    ###### Aggiunta padding alle immagini #####
     padded_images = [None] * 4
-
-    # pixel = [0, 0, :]
 
     # Per tutti i nuovi frammenti dell'immagine
     for index in range(0, len(images)):
-        # Aggiungo il padding
-        # print(padded_images[index].shape)
         padded_images[index] = np.pad(images[index], ((100, 100), (100, 100), (0,0)), mode='constant', constant_values=np.iinfo(image.dtype).max)
-        print(padded_images[index].shape)
-        visualize_image(padded_images[index])
+        print("Dimensione frammento: ", index, ": ", padded_images[index].shape)
+        # visualize_image(padded_images[index])
+
         # Save images with padding
         tiff.imwrite(names[index], padded_images[index])
 
     print(type(padded_images[0]))
-    # print(padded_images[0][0, 0, :])
-    # print(padded_images[0][500, 500, :])
-    # print(padded_images[0][2000, 2000, :])
 
     visualize_images(padded_images, names)
 
