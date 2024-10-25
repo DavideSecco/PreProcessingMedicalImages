@@ -52,6 +52,7 @@ def downsample_image(image_object, level, region=None, size=None, show=True):
         plt.title("Downsampled image before saving")
         plt.imshow(downsampled_img)
         plt.show()
+        plt.close()
 
     # return np.array(downsampled_img)
     return downsampled_img
@@ -68,12 +69,15 @@ def convert_rgba_to_rgb(rgba_image, background=(255, 255, 255)):
     return Image.fromarray(rgb_image, 'RGB')
 
 def process_image(image_path, save_dir):
-    level = 2
+
     stichpro_compatible = True
     good_image = False
 
     # Read the path of the image
     original_img, _ = read_image(image_path)
+
+    level = int(input("A che livello vuoi fare il downsampling: "))
+    # level = 1
 
     while (not good_image):
         original_img_name = os.path.basename(image_path)
@@ -100,10 +104,6 @@ def process_image(image_path, save_dir):
 
         # Print the shape
         print(f"Image shape: ({height}, {width}, {channels})")
-
-        plt.title("Downsampled image before saving")
-        plt.imshow(downsampled_image)
-        plt.show()
 
         # Save the image
         downsampled_image_path = os.path.join(save_dir, downsampled_img_name)
@@ -144,19 +144,19 @@ if __name__ == '__main__':
     parser.add_argument('path', type=str, help='The path to the file')
     args = parser.parse_args()
 
-    if os.path.isfile(args.path):
-        save_dir = os.path.curdir
+    save_dir = os.path.dirname(args.path)
 
-        process_image(args.path, os.path.curdir)
+    if os.path.isfile(args.path):
+        process_image(args.path, save_dir = save_dir )
 
     if os.path.isdir(args.path):
-        save_dir = os.path.join(os.getcwd(), os.path.basename(os.path.normpath(args.path)))
+        # save_dir = os.path.join(args.path, os.path.basename(os.path.normpath(args.path)))
 
-        try:
-            os.makedirs(save_dir, exist_ok=True)
-            print(f"Cartella '{save_dir}' creata con successo")
-        except OSError as e:
-            print(f"Errore nella creazione della cartella: {e}")
+        #try:
+        #    os.makedirs(save_dir, exist_ok=True)
+        #    print(f"Cartella '{save_dir}' creata con successo")
+        #except OSError as e:
+        #    print(f"Errore nella creazione della cartella: {e}")
 
         for file in os.listdir(args.path):
             process_image(os.path.join(args.path, file), save_dir)
