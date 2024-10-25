@@ -49,12 +49,12 @@ def find_centroid(image):
 
     ###### Visualizzo centroid e true image (DA COMMENTARE IN PRODUZIONE) ######
 
-    # cv2.circle(image, (cY, cX), 70, (255, 0, 0), thickness=-1)  # Draw red circle
-    # plt.figure(figsize=(6, 6))
-    # plt.title("True Image")
-    # plt.imshow(image, cmap='gray') # cmap='gray'
-    # plt.axis('on')  # Hide axes for a cleaner look
-    # plt.show()
+    cv2.circle(image, (cY, cX), 70, (255, 0, 0), thickness=-1)  # Draw red circle
+    plt.figure(figsize=(6, 6))
+    plt.title("True Image")
+    plt.imshow(image, cmap='gray') # cmap='gray'
+    plt.axis('on')  # Hide axes for a cleaner look
+    plt.show()
 
     ###### Visualizzo centroid e binary_mask image ######
 
@@ -98,6 +98,100 @@ def divide_4_pieces(image, cX=None, cY=None):
 
     return images, names
 
+def add_noise_to_line(y, max_noise):
+    noise = np.random.randint(-max_noise, max_noise, y.shape)
+    return y + noise
+
+def split_image_in_4_with_noise(iamge, cX=None, cY=None, max_noise=200):
+    # Load the image
+    # image = cv2.imread(image_path)
+
+    # Get the dimensions of the image
+    height, width, levels = image.shape
+
+    if cX == None or cY == None:
+        # Calculate the coordinates for the 4 pieces
+        cX = width // 2
+        cY = height // 2
+
+    # Add noise to the horizontal and vertical lines
+    noise_y = add_noise_to_line(np.full(height, cY), max_noise)
+    print("Type:", type(noise_y))
+    print(len(noise_y))
+    print(noise_y)
+    noise_x = add_noise_to_line(np.full(width, cX), max_noise)
+
+    # Split the image into four parts
+    upper_left = image[:min(noise_x), :min(noise_y)]
+    upper_right = image[:min(noise_x), min(noise_y):]
+    bottom_left = image[min(noise_x):, :min(noise_y)]
+    bottom_right = image[min(noise_x):, min(noise_y):]
+
+    # Save or display the pieces
+    # cv2.imwrite('top_left.png', upper_left)
+    # cv2.imwrite('top_right.png', upper_right)
+    # cv2.imwrite('bottom_left.png', upper_right)
+    # cv2.imwrite('bottom_right.png', bottom_right)
+
+    # Display the pieces using PIL for better visualization
+    # images = [upper_left, upper_right, bottom_left, bottom_right]
+    # for idx, img in enumerate(images):
+    #     Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)).show(title=f'Piece {idx + 1}')
+
+    images = [upper_left, upper_right, bottom_left, bottom_right]
+    names = ['upper_left.tif', 'upper_right.tif', 'bottom_left.tif', 'bottom_right.tif']
+
+    return images, names
+
+def generate_wavy_line(length, amplitude, frequency):
+    x = np.arange(length)
+    # Generate a sinusoidal wave with added random noise
+    y = amplitude * np.sin(2 * np.pi * frequency * x / length) + np.random.randint(-amplitude, amplitude, size=length)
+    return y.astype(np.int32)
+
+def split_image_with_wavy_cut(iamge, amplitude=30, frequency=5):
+    # Load the image
+    # image = cv2.imread(image_path)
+    height, width, _ = image.shape
+
+    # Generate wavy lines for horizontal and vertical splits
+    horizontal_wave = generate_wavy_line(width, amplitude, frequency) + height // 2
+    vertical_wave = generate_wavy_line(height, amplitude, frequency) + width // 2
+
+    # Ensure the waves stay within the image boundaries
+    horizontal_wave = np.clip(horizontal_wave, 0, height - 1)
+    vertical_wave = np.clip(vertical_wave, 0, width - 1)
+
+    # Create masks for each piece
+    mask_top_left = np.zeros((height, width), dtype=np.uint8)
+    mask_top_right = np.zeros((height, width), dtype=np.uint8)
+    mask_bottom_left = np.zeros((height, width), dtype=np.uint8)
+    mask_bottom_right = np.zeros((height, width), dtype=np.uint8)
+
+    for x in range(width):
+        mask_top_left[:horizontal_wave[x], x] = 1
+        mask_bottom_left[horizontal_wave[x]:, x] = 1
+
+    for y in range(height):
+        mask_top_right[y, :vertical_wave[y]] = 1
+        mask_bottom_right[y, vertical_wave[y]:] = 1
+
+    # Combine masks to get each piece
+    upper_left = cv2.bitwise_and(image, image, mask=mask_top_left)
+    upper_right = cv2.bitwise_and(image, image, mask=mask_top_right)
+    bottom_left = cv2.bitwise_and(image, image, mask=mask_bottom_left)
+    bottom_right = cv2.bitwise_and(image, image, mask=mask_bottom_right)
+
+    # Save or display the pieces
+    cv2.imwrite('top_left.png', upper_left)
+    cv2.imwrite('top_right.png', upper_right)
+    cv2.imwrite('bottom_left.png', bottom_left)
+    cv2.imwrite('bottom_right.png', bottom_right)
+
+    images = [upper_left, upper_right, bottom_left, bottom_right]
+    names = ['upper_left.tif', 'upper_right.tif', 'bottom_left.tif', 'bottom_right.tif']
+
+    return images, names
 
 def convert_rgba_to_rgb(rgba_image, background=(255, 255, 255)):
     """Convert an RGBA image to RGB by blending it with a background color."""
@@ -141,11 +235,13 @@ if __name__ == '__main__':
     print("Dimensione dell'immagine RGB:", image.shape)
 
     ###### Trovo centroid #######
-    cX, cY = find_centroid(image)
+    cX, cY = find_centroid(np.copy(image))
     print("Cordinate centroid: cX: ", cX, "cY: ", cY)
 
     ###### Divisione dell'immagine ######
     images, names = divide_4_pieces(image, cX, cY)
+    # images, names = split_image_in_4_with_noise(image, cX, cY)
+    # images, names = split_image_with_wavy_cut(image)
 
     ###### Aggiunta padding alle immagini #####
     padded_images = [None] * 4
